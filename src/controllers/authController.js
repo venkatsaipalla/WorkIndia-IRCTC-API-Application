@@ -57,8 +57,8 @@ export const registerUser = async (req, res) => {
   }
 
   try {
-    // Check if the user already exists
     const db = await InitializeDatabase();
+    // Check if the user already exists
     const existingUser = await db.get("SELECT * FROM users WHERE email = ?", [
       email,
     ]);
@@ -82,3 +82,47 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// export const registerUser = async (req, res) => {
+//   const { username, email, password, gender, role = "user" } = req.body;
+
+//   // Check if any required field is missing
+//   if (!username || !email || !password || !gender) {
+//     return res.status(400).json({ error: "All fields are required" });
+//   }
+
+//   const db = await InitializeDatabase();
+//   try {
+//     // Check if the user already exists
+//     await db.run("BEGIN TRANSACTION");
+//     const existingUser = await db.get("SELECT * FROM users WHERE email = ?", [
+//       email,
+//     ]);
+//     if (existingUser) {
+//       await db.exec("RELEASE");
+//       return res.status(400).json({ error: "User already exists" });
+//     }
+
+//     // Hash the password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Insert the user into the database
+//     await db.run(
+//       "INSERT INTO users (username, email, password, gender, role) VALUES (?, ?, ?, ?, ?)",
+//       [username, email, hashedPassword, gender, role]
+//     );
+//     console.log("User registered:", username);
+//     await db.run("COMMIT");
+//     await db.exec("RELEASE");
+
+//     res.status(201).json({ message: "User registered successfully" });
+//   } catch (error) {
+//     console.error("Error registering user:", error.message);
+//     await db.run("ROLLBACK");
+//     res
+//       .status(500)
+//       .json({ error: "Error registering user", errorMessage: error.message });
+//   } finally {
+//     await db.exec("RELEASE");
+//   }
+// };

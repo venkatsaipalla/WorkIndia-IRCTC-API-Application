@@ -1,6 +1,5 @@
 import express from "express";
 import { loginUser,registerUser } from "../controllers/authController.js";
-import { createUser } from "../controllers/userController.js";
 const router = express.Router();
 
 // Route to register a new user

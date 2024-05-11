@@ -1,22 +1,37 @@
-import db from "../../config/db.js";
+import InitializeDatabase from "../../config/db.js";
 import { ExecuteTransaction } from "../utils/helper.js";
 import Train from '../models/Train.js'
 
-// Controller function to create a new train
-export const createTrain = async (req, res) => {
+const createTrain = async (req, res) => {
   try {
-    const { trainNumber,trainName, source, destination, totalSeats } = req.body;
+    // Extract train details from the request body
+    const { trainNumber, trainName, source, destination, seatsAvailable } = req.body;
 
-    const result = await ExecuteTransaction(async (transaction) => {
-      // Create the new train within the transaction
-      const newTrain = await Train.create({ trainNumber,trainName, source, destination, totalSeats }, { transaction });
-      return { newTrain };
-    });
+    // Validate required fields
+    if (!trainNumber || !trainName || !source || !destination || !seatsAvailable) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
 
-    return res.status(201).json({ success: true, message: 'Train created successfully', train: result.newTrain });
+    // Check if the train already exists
+    const db = await InitializeDatabase();
+    const existingTrain = await db.get("SELECT * FROM train WHERE trainNumber = ?", [trainNumber]);
+    if (existingTrain) {
+      return res.status(400).json({ error: "Train with this number already exists" });
+    }
+
+    // Insert new train into the database
+    await db.run("INSERT INTO train (trainNumber, trainName, source, destination, seatsAvailable) VALUES (?, ?, ?, ?, ?)", [
+      trainNumber,
+      trainName,
+      source,
+      destination,
+      seatsAvailable
+    ]);
+
+    res.status(201).json({ message: "Train created successfully" });
   } catch (error) {
-    console.error('Error creating train:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error("Error creating train:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
