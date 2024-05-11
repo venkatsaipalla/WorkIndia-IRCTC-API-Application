@@ -12,13 +12,13 @@ This API provides functionalities for managing railway operations including user
   - [Get All Users](#get-all-users)
 - [Train Management](#train-management)
   - [Create Train](#create-train)
-  - [Get Train by Number](#get-train-by-number)
+  - [Get Train Details by Number](#Get-Train-Details-by-Number)
   - [Update Train Details](#update-train-details)
   - [Delete Train](#delete-train)
   - [Get All Trains](#get-all-trains)
 - [Booking Management](#booking-management)
   - [Create Booking](#create-booking)
-  - [Get Booking Details](#get-booking-details)
+  - [Get Booking Details By Id](#Get-Booking-DetailsById)
   - [Get All Booking Details](#get-all-booking-details)
 
 ## Authentication
@@ -198,7 +198,7 @@ This API provides functionalities for managing railway operations including user
   - 400 Bad Request: Invalid input parameters or insufficient seats available.
   - 500 Internal Server Error: Server encountered an error.
 
-### Get Booking Details By Id
+### Get Booking DetailsById
 
 - **Endpoint:** GET /api/booking/:bookingId
 - **Description:** Retrieve booking details by booking ID.
