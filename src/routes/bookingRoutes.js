@@ -3,7 +3,8 @@
 import express from "express";
 import {
   createBooking,
-  getBookingDetails,
+  getBookingDetailsById,
+  getAllBookingDetails,
   cancelBooking,
 } from "../controllers/bookingController.js";
 import {
@@ -13,13 +14,18 @@ import {
 
 const router = express.Router();
 
+//get all booking details
+router.get("/all", authenticateToken, getAllBookingDetails);
+
 // Route to create a new booking
 router.post("/book", authenticateToken, createBooking);
 
 // Route to get booking details by ID
-router.get("/:id", authenticateToken, getBookingDetails);
+router.get("/:bookingId", authenticateToken, getBookingDetailsById);
 
 // Route to cancel a booking by ID
 router.delete("/:id", authenticateToken, cancelBooking);
+
+
 
 export default router;

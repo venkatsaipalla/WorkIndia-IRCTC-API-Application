@@ -53,8 +53,8 @@ export const InitializeDatabase = async () => {
         numberOfSeats INTEGER NOT NULL,
         status VARCHAR(20) DEFAULT 'failure',
         FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE,
-        FOREIGN KEY (trainNumber) REFERENCES train(trainNumber) ON DELETE CASCADE
-      );`);
+        FOREIGN KEY (trainNumber) REFERENCES train(trainId) ON DELETE CASCADE
+    );`);
       console.log("Booking Database initialized");
       return db;
     } catch (error) {

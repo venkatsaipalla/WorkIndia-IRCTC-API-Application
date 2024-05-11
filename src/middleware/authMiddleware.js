@@ -41,22 +41,30 @@ export const validateApiKeyAndRole = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET,
+      (err, decoded) => {
+        if (err) {
+          console.error("Error verifying token:", err.message);
+          return res.status(403).json({ message: "Forbidden - Invalid token" });
+        }
+        console.log({ decoded });
+        return decoded;
+      }
+    );
     const userRole = decoded.role;
-
+    if (!userRole) throw "Pass Bearer Authentication Token";
     // Check if the user role is 'admin'
     if (userRole !== "admin") {
       return res
         .status(403)
         .json({ success: false, message: "Forbidden: User is not an admin" });
     }
-
     // User is an admin, proceed to the next middleware or route handler
     next();
   } catch (error) {
     console.error("Error decoding JWT:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+    return res.status(500).json({ success: false, message: error });
   }
 };

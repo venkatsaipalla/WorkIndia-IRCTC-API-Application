@@ -4,6 +4,7 @@ import {
   getTrainByNumber,
   updateTrainDetails,
   deleteTrain,
+  getAllTrains,
 } from "../controllers/trainController.js";
 import {
   authenticateToken,
@@ -15,12 +16,15 @@ const router = express.Router();
 // Route to create a new train
 router.post("/add", authenticateToken, validateApiKeyAndRole, createTrain);
 
+//get all train details
+router.get("/all", authenticateToken, getAllTrains);
+
 // Route to get train details by train number
 router.get("/:trainNumber", authenticateToken, getTrainByNumber);
 
 // Route to update train details by train number
 router.put(
-  "/:trainNumber",
+  "/update/:trainNumber",
   authenticateToken,
   validateApiKeyAndRole,
   updateTrainDetails
@@ -28,7 +32,7 @@ router.put(
 
 // Route to delete a train by train number
 router.delete(
-  "/:trainNumber",
+  "/delete/:trainNumber",
   authenticateToken,
   validateApiKeyAndRole,
   deleteTrain

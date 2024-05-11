@@ -2,20 +2,31 @@ import { ExecuteTransaction } from "../utils/helper.js";
 import Booking from "../models/Booking.js";
 import Train from "../models/Train.js";
 import User from "../models/User.js";
+import InitializeDatabase from "../../config/db.js";
+import { QueryTypes } from "sequelize";
 
 // Controller function to create a new booking within a transaction
 export const createBooking = async (req, res) => {
+  const db = await InitializeDatabase();
   try {
     const { email, passengerName, age, trainNumber, numberOfSeats } = req.body;
 
-    // Check if the train has sufficient seats available
-    const train = await Train.findOne({ where: { trainNumber } });
-    if (!train) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Train not found" });
+    // Validate input parameters
+    if (!email || !passengerName || !age || !trainNumber || !numberOfSeats) {
+      return res.status(400).json({ error: "All fields are required" });
     }
-    if (train.seatsAvailable < numberOfSeats) {
+
+    // Check if the specified train exists
+    await db.exec("BEGIN TRANSACTION");
+    const trainExists = await db.get(
+      "SELECT * FROM train WHERE trainNumber = ?",
+      [trainNumber]
+    );
+    if (!trainExists) {
+      return res.status(404).json({ error: "Train not found" });
+    }
+    console.log({ trainExists });
+    if (trainExists.seatsAvailable < numberOfSeats) {
       return res
         .status(400)
         .json({ success: false, message: "Insufficient seats available" });
@@ -23,7 +34,7 @@ export const createBooking = async (req, res) => {
 
     // Generate seat numbers if seats are available
     const availableSeatNumbers = await generateAvailableSeatNumbers(
-      train.lastSeatNumber,
+      trainExists.lastSeatNumber,
       numberOfSeats
     );
     if (availableSeatNumbers.length < numberOfSeats) {
@@ -32,41 +43,39 @@ export const createBooking = async (req, res) => {
         .json({ success: false, message: "Insufficient seats available" });
     }
 
-    const result = await ExecuteTransaction(async (transaction) => {
-      // Create the booking within the transaction
-      const newBooking = await Booking.create(
-        {
-          email,
-          passengerName,
-          age,
-          trainNumber,
-          numberOfSeats,
-          seatNumber: availableSeatNumbers.toString(),
-          status: "Success",
-        },
-        { transaction }
-      );
-      // Update the lastSeatNumber for the train
-      await train.update(
-        {
-          lastSeatNumber: availableSeatNumbers[availableSeatNumbers.length - 1],
-        },
-        { transaction }
-      );
+    // Create the booking
+    await db.run(
+      "INSERT INTO booking (email, passengerName, age, trainNumber,seatNumber, numberOfSeats,status) VALUES (?, ?, ?, ?, ?,?,?)",
+      [
+        email,
+        passengerName,
+        age,
+        trainNumber,
+        availableSeatNumbers.join(","),
+        numberOfSeats,
+        "Success",
+      ]
+    );
+    const updatedSeatsAvailable = trainExists.seatsAvailable - numberOfSeats;
 
-      // Update seatsAvailable in the train
-      const seatsAvailable = train.seatsAvailable - numberOfSeats;
-      await train.update({ seatsAvailable }, { transaction });
-      return { newBooking, seatNumbers: availableSeatNumbers };
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Booking created successfully",
-      booking: result.newBooking,
-      seatNumbers: result.seatNumbers,
-    });
+    await db.run(
+      "UPDATE train SET seatsAvailable = ?,lastSeatNumber=? WHERE trainNumber = ?",
+      [
+        updatedSeatsAvailable,
+        availableSeatNumbers[availableSeatNumbers.length - 1],
+        trainNumber,
+      ]
+    );
+    await db.exec("COMMIT");
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Booking successful",
+        seatNumbers: availableSeatNumbers,
+      });
   } catch (error) {
+    await db.exec("ROLLBACK");
     console.error("Error creating booking:", error);
     return res
       .status(500)
@@ -110,4 +119,48 @@ export const cancelBooking = async (req, res) => {
   }
 };
 
-export const getBookingDetails = () => {};
+export const getBookingDetailsById = async (req, res) => {
+  const db = await InitializeDatabase();
+  try {
+    const { bookingId } = req.params;
+
+    if (!bookingId) {
+      return res.status(400).json({ error: "Booking ID is required" });
+    }
+
+    const bookingDetails = await db.get(
+      "SELECT * FROM booking WHERE bookingId = ?",
+      [bookingId]
+    );
+
+    if (!bookingDetails) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    // Return booking details
+    return res.status(200).json({ success: true, data: bookingDetails });
+  } catch (error) {
+    console.error("Error retrieving booking details:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getAllBookingDetails = async (req, res) => {
+  const db = await InitializeDatabase();
+  try {
+    const allBookings = await db.all("SELECT * FROM booking");
+
+    if (!allBookings || allBookings.length === 0) {
+      return res.status(404).json({ error: "No bookings found" });
+    }
+
+    return res.status(200).json({ success: true, data: allBookings });
+  } catch (error) {
+    console.error("Error retrieving all booking details:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
